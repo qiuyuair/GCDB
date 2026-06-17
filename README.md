@@ -158,15 +158,16 @@ Git 已连接后，建议以 `git push` 为准，避免与自动部署冲突。
 
 ```
 <b>6% off Amazon gift cards in the Samsung Wallet app</b>
+
 Type: Discount
 Valid: While stocks last
 
-<blockquote>Save 6% on $50-500 Amazon gift cards when you purchase them...</blockquote>
+<blockquote expandable>Save 6% on $50-500 Amazon gift cards when you purchase them...</blockquote>
 
 <a href="https://gcdb.com.au/offer/12382/">View details</a>
 ```
 
-The body is wrapped in a Telegram blockquote for readability. With a photo, the text appears as the image caption.
+The body uses an expandable blockquote (collapsed by default, tap to expand).
 
 ## 环境变量
 

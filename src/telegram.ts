@@ -2,7 +2,7 @@ import type { Offer } from "./gcdb";
 
 const PHOTO_CAPTION_LIMIT = 1024;
 const MESSAGE_LIMIT = 4096;
-const BLOCKQUOTE_OPEN = "<blockquote>";
+const BLOCKQUOTE_OPEN = "<blockquote expandable>";
 const BLOCKQUOTE_CLOSE = "</blockquote>";
 
 export function escapeHtml(text: string): string {
@@ -17,7 +17,7 @@ function formatQuotedBody(body: string): string {
 }
 
 function buildFixedParts(offer: Offer): { header: string; footer: string } {
-  const lines = [`<b>${escapeHtml(offer.title)}</b>`];
+  const lines = [`<b>${escapeHtml(offer.title)}</b>`, ""];
 
   if (offer.offerType) {
     lines.push(`Type: ${escapeHtml(offer.offerType)}`);
