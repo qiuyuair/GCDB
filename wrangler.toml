@@ -1,0 +1,12 @@
+name = "gcdb-telegram"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["0 */2 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gcdb-offers"
+# 运行 `wrangler d1 create gcdb-offers` 后将返回的 database_id 填入下方
+database_id = "72467263-91a2-442a-a551-cbba0ac37175"
