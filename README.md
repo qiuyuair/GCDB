@@ -1,6 +1,6 @@
 # GCDB Telegram Worker
 
-从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram 频道。运行在 Cloudflare Workers + D1 上。
+从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram Bot 私聊。运行在 Cloudflare Workers + D1 上。
 
 ## 功能
 
@@ -75,52 +75,84 @@ curl http://127.0.0.1:8787/run
 curl -H "Authorization: Bearer <RUN_SECRET>" http://127.0.0.1:8787/run
 ```
 
-## 部署到 Cloudflare
+## 部署方式（GitHub → Cloudflare 自动部署）
 
-### 一次性配置
+日常流程：**改代码 → `git push` → Cloudflare 自动从 GitHub 拉取并部署**。
 
-1. 配置 Telegram Bot（@BotFather）并将 Bot 设为频道管理员
-2. 设置 Cloudflare Secrets：
+```
+本地开发 → git push → GitHub (qiuyuair/GCDB) → Cloudflare 自动构建部署 → Worker 上线
+```
+
+不再使用本地 `wrangler deploy` 或 GitHub Actions 作为主流程；Cloudflare Secrets（Token 等）保留在云端，Git 部署不会覆盖它们。
+
+### 第一步：一次性配置 Secrets 和 D1
+
+1. 在 Telegram 中找到你的 Bot，发送 `/start` 建立私聊
+2. 在 Cloudflare 配置 Secrets（只需一次）：
 
 ```bash
 npx wrangler secret put TELEGRAM_BOT_TOKEN
-npx wrangler secret put TELEGRAM_CHANNEL_ID
-# 可选：保护 /run 端点
-npx wrangler secret put RUN_SECRET
+npx wrangler secret put TELEGRAM_CHAT_ID
 ```
 
-3. 确认 `wrangler.toml` 中 D1 `database_id` 已填写
+也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
 
-### 方式 A：GitHub → Cloudflare Git 集成（推荐）
+3. D1 数据库已创建（`gcdb-offers`），`wrangler.toml` 中已绑定
 
-1. 将本项目推送到 GitHub
-2. Cloudflare Dashboard → Workers & Pages → Create → Connect to Git
-3. 选择仓库与 `main` 分支
-4. Deploy command 填写：`npx wrangler deploy`
-5. 之后每次 `git push` 自动部署
+### 第二步：连接 GitHub 仓库（只需一次）
 
-### 方式 B：GitHub Actions
+Worker 已存在，需在 Dashboard 把 Git 仓库连上去：
 
-仓库已包含 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
+1. 打开 [Cloudflare Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages)
+2. 点击 Worker：**gcdb-telegram**
+3. 进入 **Settings** → **Builds**
+4. 点击 **Connect to Git**（或 **Connect**）
+5. 授权 GitHub，选择仓库：**qiuyuair/GCDB**
+6. 构建设置：
+   - **Production branch**：`main`
+   - **Root directory**：`/`（留空即可）
+   - **Build command**：留空
+   - **Deploy command**：`npx wrangler deploy`
+7. 保存
 
-在 GitHub Repository → Settings → Secrets 中添加：
+> Worker 名称必须与 `wrangler.toml` 中的 `name = "gcdb-telegram"` 一致，否则构建会失败。
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+### 第三步：日常更新
 
-推送到 `main` 分支后自动部署。Telegram Token 仍配置在 Cloudflare Secrets，不要放进 GitHub。
+```bash
+git add .
+git commit -m "你的修改说明"
+git push
+```
 
-### 手动部署
+推送后 Cloudflare 会自动：
+- 从 GitHub 拉取最新代码
+- 执行 `npm install` 和 `npx wrangler deploy`
+- 在 Dashboard → **Deployments** 显示构建日志
+
+### 验证
+
+```text
+https://gcdb-telegram.qiuyuair.workers.dev/run
+```
+
+### 获取 Telegram Chat ID
+
+向 Bot 发送 `/start` 后，可用以下命令查看你的 chat_id：
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
+```
+
+在返回的 `message.chat.id` 字段中查找（私聊时通常与用户 ID 相同）。
+
+### 手动部署（仅调试用）
 
 ```bash
 npm run deploy
 ```
 
-部署后访问：
-
-```text
-https://<worker-name>.<subdomain>.workers.dev/run
-```
+Git 已连接后，建议以 `git push` 为准，避免与自动部署冲突。
 
 ## Telegram 消息格式
 
@@ -142,7 +174,7 @@ Save 6% on $50-500 Amazon gift cards when you purchase them...
 | 变量 | 说明 |
 |------|------|
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
-| `TELEGRAM_CHANNEL_ID` | 频道 ID，如 `@channel` 或 `-100xxxxxxxxxx` |
+| `TELEGRAM_CHAT_ID` | 你的 Telegram 用户 ID（与 Bot 私聊的 chat_id） |
 | `RUN_SECRET` | 可选，保护 `/run` 端点 |
 | `DB` | D1 数据库绑定（在 `wrangler.toml` 中配置） |
 
