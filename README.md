@@ -163,7 +163,6 @@ Type: Discount
 Valid: While stocks last
 
 <blockquote expandable>Save 6% on $50-500 Amazon gift cards when you purchase them...</blockquote>
-
 <a href="https://gcdb.com.au/offer/12382/">View details</a>
 ```
 

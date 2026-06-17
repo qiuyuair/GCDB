@@ -34,14 +34,11 @@ function buildFixedParts(offer: Offer): { header: string; footer: string } {
 }
 
 function assembleMessage(header: string, body: string | null, footer: string): string {
-  const parts = [header];
-
   if (body) {
-    parts.push("", formatQuotedBody(body));
+    return [header, "", formatQuotedBody(body), footer].join("\n");
   }
 
-  parts.push("", footer);
-  return parts.join("\n");
+  return [header, footer].join("\n");
 }
 
 export function formatOfferMessage(offer: Offer, hasPhoto: boolean): string {
@@ -59,7 +56,7 @@ export function formatOfferMessage(offer: Offer, hasPhoto: boolean): string {
   }
 
   const overhead =
-    header.length + footer.length + BLOCKQUOTE_OPEN.length + BLOCKQUOTE_CLOSE.length + 2;
+    header.length + footer.length + BLOCKQUOTE_OPEN.length + BLOCKQUOTE_CLOSE.length + 1;
   const bodyBudget = limit - overhead;
 
   if (bodyBudget <= 1) {
