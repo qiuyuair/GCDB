@@ -2,6 +2,8 @@ import type { Offer } from "./gcdb";
 
 const PHOTO_CAPTION_LIMIT = 1024;
 const MESSAGE_LIMIT = 4096;
+const BLOCKQUOTE_OPEN = "<blockquote>";
+const BLOCKQUOTE_CLOSE = "</blockquote>";
 
 export function escapeHtml(text: string): string {
   return text
@@ -10,65 +12,62 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-export function formatOfferMessage(offer: Offer, hasPhoto: boolean): string {
-  const limit = hasPhoto ? PHOTO_CAPTION_LIMIT : MESSAGE_LIMIT;
+function formatQuotedBody(body: string): string {
+  return `${BLOCKQUOTE_OPEN}${body}${BLOCKQUOTE_CLOSE}`;
+}
 
-  const title = `<b>${escapeHtml(offer.title)}</b>`;
-  const meta: string[] = [];
+function buildFixedParts(offer: Offer): { header: string; footer: string } {
+  const lines = [`<b>${escapeHtml(offer.title)}</b>`];
 
   if (offer.offerType) {
-    meta.push(`类型: ${escapeHtml(offer.offerType)}`);
+    lines.push(`Type: ${escapeHtml(offer.offerType)}`);
   }
 
   if (offer.validity) {
-    meta.push(`有效期: ${escapeHtml(offer.validity)}`);
+    lines.push(`Valid: ${escapeHtml(offer.validity)}`);
   }
 
-  const footer = `<a href="${escapeHtml(offer.link)}">查看详情</a>`;
-  const body = offer.body ? escapeHtml(offer.body) : "";
+  return {
+    header: lines.join("\n"),
+    footer: `<a href="${escapeHtml(offer.link)}">View details</a>`,
+  };
+}
 
-  const sections: string[] = [title];
-
-  if (meta.length > 0) {
-    sections.push("", ...meta);
-  }
+function assembleMessage(header: string, body: string | null, footer: string): string {
+  const parts = [header];
 
   if (body) {
-    sections.push("", body);
+    parts.push("", formatQuotedBody(body));
   }
 
-  sections.push("", footer);
+  parts.push("", footer);
+  return parts.join("\n");
+}
 
-  let message = sections.join("\n");
+export function formatOfferMessage(offer: Offer, hasPhoto: boolean): string {
+  const limit = hasPhoto ? PHOTO_CAPTION_LIMIT : MESSAGE_LIMIT;
+  const { header, footer } = buildFixedParts(offer);
+  const rawBody = offer.body ? escapeHtml(offer.body) : "";
+
+  if (!rawBody) {
+    return assembleMessage(header, null, footer);
+  }
+
+  let message = assembleMessage(header, rawBody, footer);
   if (message.length <= limit) {
     return message;
   }
 
-  if (!body) {
-    return message.slice(0, limit);
-  }
-
-  const withoutBody = [title];
-  if (meta.length > 0) {
-    withoutBody.push("", ...meta);
-  }
-  withoutBody.push("", footer);
-
-  const fixedLength = withoutBody.join("\n").length + 2;
-  const bodyBudget = limit - fixedLength;
+  const overhead =
+    header.length + footer.length + BLOCKQUOTE_OPEN.length + BLOCKQUOTE_CLOSE.length + 2;
+  const bodyBudget = limit - overhead;
 
   if (bodyBudget <= 1) {
-    return withoutBody.join("\n").slice(0, limit);
+    return assembleMessage(header, null, footer);
   }
 
-  const truncatedBody = `${body.slice(0, bodyBudget - 1)}…`;
-  const rebuilt = [title];
-  if (meta.length > 0) {
-    rebuilt.push("", ...meta);
-  }
-  rebuilt.push("", truncatedBody, "", footer);
-
-  return rebuilt.join("\n");
+  const truncatedBody = `${rawBody.slice(0, bodyBudget - 1)}…`;
+  return assembleMessage(header, truncatedBody, footer);
 }
 
 interface TelegramResponse {

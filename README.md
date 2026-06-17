@@ -6,7 +6,7 @@
 
 - 每 2 小时自动检查 GCDB 新优惠（Cron Trigger）
 - 仅推送未发送过的优惠（D1 去重）
-- 标题加粗，附带类型、有效期、详情正文与链接
+- Bold title with type, validity, blockquoted body, and link (all in English)
 - 有配图时使用 `sendPhoto`，无配图时使用 `sendMessage`
 
 ## 项目结构
@@ -154,20 +154,19 @@ npm run deploy
 
 Git 已连接后，建议以 `git push` 为准，避免与自动部署冲突。
 
-## Telegram 消息格式
+## Telegram message format
 
 ```
 <b>6% off Amazon gift cards in the Samsung Wallet app</b>
+Type: Discount
+Valid: While stocks last
 
-类型: Discount
-有效期: While stocks last
+<blockquote>Save 6% on $50-500 Amazon gift cards when you purchase them...</blockquote>
 
-Save 6% on $50-500 Amazon gift cards when you purchase them...
-
-<a href="https://gcdb.com.au/offer/12382/">查看详情</a>
+<a href="https://gcdb.com.au/offer/12382/">View details</a>
 ```
 
-有配图时，上述文字作为图片 caption 显示。
+The body is wrapped in a Telegram blockquote for readability. With a photo, the text appears as the image caption.
 
 ## 环境变量
 
