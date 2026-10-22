@@ -1,6 +1,8 @@
 # GCDB Telegram Worker
 
-从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram 群组。运行在 Cloudflare Workers + D1 上。
+从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram。运行在 Cloudflare Workers + D1 上。
+
+`TELEGRAM_CHAT_ID` 同时支持 **Bot 私聊** 和 **群组**：填个人 chat_id 则发到私聊，填群组 ID（一般为负数，如 `-100xxxxxxxxxx`）则发到群。代码无需改动。
 
 ## 功能
 
@@ -87,16 +89,15 @@ curl -H "Authorization: Bearer <RUN_SECRET>" http://127.0.0.1:8787/run
 
 ### 第一步：一次性配置 Secrets 和 D1
 
-1. 把 Bot（如 `@giftcarddb_bot`）拉进目标群组，并允许它发送消息
-2. 在群里发一条 `/start`（或任意 @Bot 的消息），方便读取群组 ID
-3. 在 Cloudflare 配置 Secrets（只需一次）：
+1. 私聊：在 Telegram 中找到 Bot，发送 `/start`。群组：把 Bot 拉进群并允许发送消息，再在群里发 `/start`
+2. 在 Cloudflare 配置 Secrets（只需一次）：
 
 ```bash
 npx wrangler secret put TELEGRAM_BOT_TOKEN
 npx wrangler secret put TELEGRAM_CHAT_ID
 ```
 
-`TELEGRAM_CHAT_ID` 填群组 ID，一般是负数，例如 `-100xxxxxxxxxx`。也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
+也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
 
 3. D1 数据库已创建（`gcdb-offers`），`wrangler.toml` 中已绑定
 
@@ -137,23 +138,18 @@ git push
 https://gcdb-telegram.qiuyuair.workers.dev/run
 ```
 
-### 获取群组 Chat ID
+### 获取 Telegram Chat ID
 
-1. 将 Bot 加入群组
-2. 在群里发送 `/start`
-3. 打开：
-
-```text
-https://gcdb-telegram.qiuyuair.workers.dev/chats
-```
-
-返回里 `type` 为 `group` 或 `supergroup` 的 `id` 就是群组 ID。然后执行：
+向 Bot 私聊或在群里发送 `/start` 后：
 
 ```bash
-npx wrangler secret put TELEGRAM_CHAT_ID
+curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
 ```
 
-已推送过的优惠不会再发到新群。若要把当前有效优惠发进群，先清空 D1 的 `sent_offers` 再访问 `/run`。
+在返回的 `message.chat.id` 中查找：
+
+- 私聊：正数用户 ID
+- 群组 / 超级群：负数，如 `-100xxxxxxxxxx`
 
 ### 手动部署（仅调试用）
 
@@ -182,7 +178,7 @@ The body uses an expandable blockquote (collapsed by default, tap to expand).
 | 变量 | 说明 |
 |------|------|
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
-| `TELEGRAM_CHAT_ID` | Telegram 群组 ID（负数，如 `-100xxxxxxxxxx`） |
+| `TELEGRAM_CHAT_ID` | 推送目标：私聊用户 ID，或群组 ID（`-100xxxxxxxxxx`） |
 | `RUN_SECRET` | 可选，保护 `/run` 端点 |
 | `DB` | D1 数据库绑定（在 `wrangler.toml` 中配置） |
 

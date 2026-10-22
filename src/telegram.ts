@@ -91,7 +91,7 @@ async function callTelegramApi(
 
 export async function sendOffer(
   token: string,
-  chatId: string,
+  channelId: string,
   offer: Offer,
 ): Promise<void> {
   const hasPhoto = Boolean(offer.imageUrl);
@@ -99,7 +99,7 @@ export async function sendOffer(
 
   if (hasPhoto && offer.imageUrl) {
     await callTelegramApi(token, "sendPhoto", {
-      chat_id: chatId,
+      chat_id: channelId,
       photo: offer.imageUrl,
       caption: text,
       parse_mode: "HTML",
@@ -108,60 +108,9 @@ export async function sendOffer(
   }
 
   await callTelegramApi(token, "sendMessage", {
-    chat_id: chatId,
+    chat_id: channelId,
     text,
     parse_mode: "HTML",
     disable_web_page_preview: false,
   });
-}
-
-interface TelegramChat {
-  id: number;
-  type: string;
-  title?: string;
-  username?: string;
-  first_name?: string;
-}
-
-interface TelegramUpdate {
-  message?: {
-    chat?: TelegramChat;
-  };
-  my_chat_member?: {
-    chat?: TelegramChat;
-  };
-}
-
-export async function listRecentChats(
-  token: string,
-): Promise<Array<{ id: number; type: string; name: string }>> {
-  const response = await fetch(
-    `https://api.telegram.org/bot${token}/getUpdates?limit=100`,
-  );
-  const result = (await response.json()) as {
-    ok: boolean;
-    description?: string;
-    result?: TelegramUpdate[];
-  };
-
-  if (!response.ok || !result.ok) {
-    throw new Error(result.description ?? `Telegram API error: ${response.status}`);
-  }
-
-  const chats = new Map<number, { id: number; type: string; name: string }>();
-
-  for (const update of result.result ?? []) {
-    const chat = update.message?.chat ?? update.my_chat_member?.chat;
-    if (!chat) {
-      continue;
-    }
-
-    chats.set(chat.id, {
-      id: chat.id,
-      type: chat.type,
-      name: chat.title ?? chat.username ?? chat.first_name ?? String(chat.id),
-    });
-  }
-
-  return [...chats.values()];
 }
