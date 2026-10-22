@@ -23,7 +23,12 @@ async function syncOffers(env: Env): Promise<SyncResult> {
 
   for (const offer of newOffers) {
     try {
-      await sendOffer(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHAT_ID, offer);
+      await sendOffer(
+        env.TELEGRAM_BOT_TOKEN,
+        env.TELEGRAM_CHAT_ID,
+        offer,
+        env.TELEGRAM_TOPIC_ID,
+      );
       await markOfferSent(env.DB, offer);
       result.sent += 1;
     } catch (error) {

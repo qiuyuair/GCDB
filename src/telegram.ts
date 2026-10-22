@@ -91,26 +91,37 @@ async function callTelegramApi(
 
 export async function sendOffer(
   token: string,
-  channelId: string,
+  chatId: string,
   offer: Offer,
+  topicId?: string,
 ): Promise<void> {
   const hasPhoto = Boolean(offer.imageUrl);
   const text = formatOfferMessage(offer, hasPhoto);
 
+  const payload: Record<string, unknown> = {
+    chat_id: chatId,
+    parse_mode: "HTML",
+  };
+
+  if (topicId) {
+    const threadId = Number(topicId);
+    if (Number.isInteger(threadId) && threadId > 0) {
+      payload.message_thread_id = threadId;
+    }
+  }
+
   if (hasPhoto && offer.imageUrl) {
     await callTelegramApi(token, "sendPhoto", {
-      chat_id: channelId,
+      ...payload,
       photo: offer.imageUrl,
       caption: text,
-      parse_mode: "HTML",
     });
     return;
   }
 
   await callTelegramApi(token, "sendMessage", {
-    chat_id: channelId,
+    ...payload,
     text,
-    parse_mode: "HTML",
     disable_web_page_preview: false,
   });
 }

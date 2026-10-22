@@ -2,7 +2,9 @@
 
 从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram。运行在 Cloudflare Workers + D1 上。
 
-`TELEGRAM_CHAT_ID` 同时支持 **Bot 私聊** 和 **群组**：填个人 chat_id 则发到私聊，填群组 ID（一般为负数，如 `-100xxxxxxxxxx`）则发到群。代码无需改动。
+`TELEGRAM_CHAT_ID` 同时支持 **Bot 私聊** 和 **群组**：填个人 chat_id 则发到私聊，填群组 ID（一般为负数，如 `-100xxxxxxxxxx`）则发到群。
+
+若群组开启了 Topics，再单独配置 `TELEGRAM_TOPIC_ID`（话题的 `message_thread_id`），消息会发到指定话题；不填则发到群默认位置。
 
 ## 功能
 
@@ -95,6 +97,8 @@ curl -H "Authorization: Bearer <RUN_SECRET>" http://127.0.0.1:8787/run
 ```bash
 npx wrangler secret put TELEGRAM_BOT_TOKEN
 npx wrangler secret put TELEGRAM_CHAT_ID
+# 可选：发到群内某个 Topic
+npx wrangler secret put TELEGRAM_TOPIC_ID
 ```
 
 也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
@@ -150,6 +154,7 @@ curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
 
 - 私聊：正数用户 ID
 - 群组 / 超级群：负数，如 `-100xxxxxxxxxx`
+- Topic：同一条消息里的 `message.message_thread_id`（正整数），写入 `TELEGRAM_TOPIC_ID`，不要写进 `TELEGRAM_CHAT_ID`
 
 ### 手动部署（仅调试用）
 
@@ -179,6 +184,7 @@ The body uses an expandable blockquote (collapsed by default, tap to expand).
 |------|------|
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
 | `TELEGRAM_CHAT_ID` | 推送目标：私聊用户 ID，或群组 ID（`-100xxxxxxxxxx`） |
+| `TELEGRAM_TOPIC_ID` | 可选。群内 Topic 的 `message_thread_id` |
 | `RUN_SECRET` | 可选，保护 `/run` 端点 |
 | `DB` | D1 数据库绑定（在 `wrangler.toml` 中配置） |
 
