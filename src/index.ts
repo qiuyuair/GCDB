@@ -1,7 +1,7 @@
 import { filterNewOffers, markOfferSent } from "./db";
 import { fetchActiveOffers } from "./gcdb";
 import type { Env } from "./gcdb";
-import { sendOffer } from "./telegram";
+import { listRecentChats, sendOffer } from "./telegram";
 
 interface SyncResult {
   checked: number;
@@ -72,11 +72,26 @@ export default {
       }
     }
 
+    if (url.pathname === "/chats" && request.method === "GET") {
+      if (!isAuthorized(request, env)) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      try {
+        const chats = await listRecentChats(env.TELEGRAM_BOT_TOKEN);
+        return Response.json({ chats });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return Response.json({ error: message }, { status: 500 });
+      }
+    }
+
     if (url.pathname === "/" && request.method === "GET") {
       return Response.json({
         service: "gcdb-telegram",
         endpoints: {
           run: "GET /run",
+          chats: "GET /chats",
         },
       });
     }

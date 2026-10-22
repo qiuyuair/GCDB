@@ -1,6 +1,6 @@
 # GCDB Telegram Worker
 
-从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram Bot 私聊。运行在 Cloudflare Workers + D1 上。
+从 [GCDB](https://gcdb.com.au/offers/) 拉取当前有效的礼品卡优惠，增量推送到 Telegram 群组。运行在 Cloudflare Workers + D1 上。
 
 ## 功能
 
@@ -87,15 +87,16 @@ curl -H "Authorization: Bearer <RUN_SECRET>" http://127.0.0.1:8787/run
 
 ### 第一步：一次性配置 Secrets 和 D1
 
-1. 在 Telegram 中找到你的 Bot，发送 `/start` 建立私聊
-2. 在 Cloudflare 配置 Secrets（只需一次）：
+1. 把 Bot（如 `@giftcarddb_bot`）拉进目标群组，并允许它发送消息
+2. 在群里发一条 `/start`（或任意 @Bot 的消息），方便读取群组 ID
+3. 在 Cloudflare 配置 Secrets（只需一次）：
 
 ```bash
 npx wrangler secret put TELEGRAM_BOT_TOKEN
 npx wrangler secret put TELEGRAM_CHAT_ID
 ```
 
-也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
+`TELEGRAM_CHAT_ID` 填群组 ID，一般是负数，例如 `-100xxxxxxxxxx`。也可在 Dashboard → **gcdb-telegram** → **Settings** → **Variables and Secrets** 中添加。
 
 3. D1 数据库已创建（`gcdb-offers`），`wrangler.toml` 中已绑定
 
@@ -136,15 +137,23 @@ git push
 https://gcdb-telegram.qiuyuair.workers.dev/run
 ```
 
-### 获取 Telegram Chat ID
+### 获取群组 Chat ID
 
-向 Bot 发送 `/start` 后，可用以下命令查看你的 chat_id：
+1. 将 Bot 加入群组
+2. 在群里发送 `/start`
+3. 打开：
 
-```bash
-curl "https://api.telegram.org/bot<TOKEN>/getUpdates"
+```text
+https://gcdb-telegram.qiuyuair.workers.dev/chats
 ```
 
-在返回的 `message.chat.id` 字段中查找（私聊时通常与用户 ID 相同）。
+返回里 `type` 为 `group` 或 `supergroup` 的 `id` 就是群组 ID。然后执行：
+
+```bash
+npx wrangler secret put TELEGRAM_CHAT_ID
+```
+
+已推送过的优惠不会再发到新群。若要把当前有效优惠发进群，先清空 D1 的 `sent_offers` 再访问 `/run`。
 
 ### 手动部署（仅调试用）
 
@@ -173,7 +182,7 @@ The body uses an expandable blockquote (collapsed by default, tap to expand).
 | 变量 | 说明 |
 |------|------|
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot Token |
-| `TELEGRAM_CHAT_ID` | 你的 Telegram 用户 ID（与 Bot 私聊的 chat_id） |
+| `TELEGRAM_CHAT_ID` | Telegram 群组 ID（负数，如 `-100xxxxxxxxxx`） |
 | `RUN_SECRET` | 可选，保护 `/run` 端点 |
 | `DB` | D1 数据库绑定（在 `wrangler.toml` 中配置） |
 
